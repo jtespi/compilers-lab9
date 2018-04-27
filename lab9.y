@@ -612,6 +612,7 @@ main(int argc, char * argv[] )
      if( strcmp( argv[count], "-d") == 0 ) {
         debug_flag = true;
         printf(" debugging enabled\n");
+        debug = 1;
      }
      if( strcmp( argv[count], "-o") == 0 ) {
         output_flag = true;
@@ -625,9 +626,13 @@ main(int argc, char * argv[] )
   }
   if ((custom_output == false) && (output_flag == true)) output_name = "output.asm";
   
-  printf(" set to output to file %s\n", output_name);
-  
-  fp = fopen( output_name, "w");
+  if (output_flag == true) {
+    printf(" set to output to file %s\n", output_name);
+    fp = fopen( output_name, "w");
+  } else 
+    {
+     fp = stdout;
+    }
   
   /*
   if ( (argc > 1) && (strcmp( argv[1], "-d" ) == 0) ) {
@@ -636,10 +641,12 @@ main(int argc, char * argv[] )
   }
   */
   /* Next call yyparse */
-  //yyparse();
-  //printf("  --- Finished parsing input/file ---\n");
+  yyparse();
+  printf("  --- Finished parsing input/file ---\n");
   
-  //emitASTmaster( program );
+  emitASTmaster( fp, program );
+  
+  fclose( fp );
   
   /* TODO: Generate NASM code..... */
   /*

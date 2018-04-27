@@ -32,25 +32,25 @@ void emitASTmaster ( FILE * fp, ASTnode *p ) {
 } 
 */
 
-void emitASTmaster ( ASTnode *p ) {
+void emitASTmaster ( FILE * fp, ASTnode *p ) {
     /* Emit the header */
-    printf( "%%include \"io64.inc\"");
-    printf( "\n");
-    emitASTglobals( p );
-    printf( "\nsection .data\t ;section for global strings\n");
-    emitASTstrings( p );
-    printf( "\nsection .text\n");
-    printf( "\tglobal main\n");
+    fprintf( fp, "%%include \"io64.inc\"");
+    fprintf( fp, "\n");
+    emitASTglobals( fp, p );
+    fprintf( fp, "\nsection .data\t ;section for global strings\n");
+    emitASTstrings( fp, p );
+    fprintf( fp, "\nsection .text\n");
+    fprintf( fp, "\tglobal main\n");
     
     /* After the header is set up, 
         emit code for any and all functions */
-    //emitAST( fp, p);
+    emitAST( fp, p);
     
-    printf( "\n  ; end program");
+    fprintf( fp, "\n  ; end program\n");
     
 }
 
-void emitASTglobals( ASTnode * p ) {
+void emitASTglobals( FILE * fp, ASTnode * p ) {
   
     if ( p == NULL ) return;
     
@@ -59,65 +59,65 @@ void emitASTglobals( ASTnode * p ) {
            case VARDEC :  //printf("Variable declaration: ");
                      if ( p-> operator == INTDEC ) {
                          //printf("INT");
-                         printf(" common\t %s\t", p->name);
+                         fprintf(fp, " common\t %s\t", p->name);
                      }
                      else if ( p-> operator == VOIDDEC )
                          //printf("VOID");
                          ;
                      else 
-                         printf("*unknown*");
+                         fprintf(fp, "*unknown type in vardec*");
                      //printf(" %s",p -> name);
                      if ( p-> value > 0) {
                         //printf("[%d]",p -> value);
-                         printf("%d", (p->value)*8 );
+                         fprintf(fp, "%d", (p->value)*8 );
                      }
                      else {
-                         printf("%d", 8);
+                         fprintf(fp, "%d", 8);
                      }
-                     printf("\n");
+                     fprintf(fp, "\n");
                      break;
     } // end switch
     
     // move to the next node
-    emitASTglobals( p->next );                     
+    emitASTglobals( fp, p->next );                     
 } // end emitASTglobals
 
 
 
-void emitASTstrings ( ASTnode * p ) {
+void emitASTstrings ( FILE * fp, ASTnode * p ) {
     if ( p == NULL ) return;
     if ( (p -> type == WRITESTMT) && (p->strlabel != NULL) ) {
             /* Print the global strings */
-            printf("%s: \t", p->strlabel); // print the label
-            printf("db %s, 0", p->name); // print the string literal
-            printf("    ;global string\n"); // print a comment
+            fprintf(fp, "%s: \t", p->strlabel); // print the label
+            fprintf(fp, "db %s, 0", p->name); // print the string literal
+            fprintf(fp, "    ;global string\n"); // print a comment
     } // end if
     // alternate abstract syntax tree navigation
-    else if ( p->s1 != NULL) emitASTstrings( p->s1 );
-    else if ( p->s2 != NULL) emitASTstrings( p->s2 );
-    else if ( p->s3 != NULL) emitASTstrings( p->s3 );
+    else if ( p->s1 != NULL) emitASTstrings( fp, p->s1 );
+    else if ( p->s2 != NULL) emitASTstrings( fp, p->s2 );
+    else if ( p->s3 != NULL) emitASTstrings( fp, p->s3 );
     
     // move to the next node
-    emitASTstrings( p -> next );
+    emitASTstrings( fp, p -> next );
 }
 
 
-void emit_id ( ASTnode * p ) {
+void emit_id ( FILE * fp, ASTnode * p ) {
     // check if id is a global var
     if ( p->symbol->level == 0 ) {
-        printf("MOV  RAX, %s\t;get identifier offset\n", p->name);
+        fprintf(fp, "MOV  RAX, %s\t;get identifier offset\n", p->name);
     } else {
-        printf("MOV  RAX, %d\t;get identifier offset\n", p->symbol->offset);
-        printf("ADD  RAX, RSP\t;Add SP to have direct ref to mem\n");
+        fprintf(fp, "MOV  RAX, %d\t;get identifier offset\n", (p->symbol->offset)*8);
+        fprintf(fp, "ADD  RAX, RSP\t;Add SP to have direct ref to mem\n");
     }
     
 }
 
-void emit_read_num ( ASTnode * p ) {
+void emit_read_num ( FILE * fp, ASTnode * p ) {
     //printf("MOV RAX, 16\t;get Identifier offset");
 	//printf("ADD RAX, RSP\t;Add the SP to have direct reference to memory ");
-    emit_id( p );
-	printf("GET_DEC 8, [RAX]\t; READ in an integer");
+    emit_id( fp, p );
+	fprintf(fp, "GET_DEC 8, [RAX]\t; READ in an integer");
 }
 
 
@@ -130,22 +130,30 @@ void emitAST (FILE * fp, ASTnode * p)
      { 
          /* **Start of large switch structure for emitting code for the different node types** */
        switch (p -> type) {
+           case FUNCTDEC:
+               emitAST(fp,p->s1);
+               emitAST(fp,p->s2);
+               break;
+           case COMPSTMT:
+               emitAST(fp,p->s1);
+               emitAST(fp,p->s2);
            case READSTMT : if(debug)printf("READ statement\n");
                     /* print the identifier (variable) */
                     emitAST( fp, p -> s1 );
                     printf("\n");
-                    
+        
                     break;
                     
            case WRITESTMT : if(debug)printf("WRITE statement\n");
                     /* print the expression */
+                    fprintf(fp,"HELLO:  %s",p->name); //if p->s1 == null else an exp num/func/call/variable
                     emitAST( fp, p -> s1 );
                     printf("\n");
                     
                     break;
                     
             case IDENTIFIER : if(debug)printf("Identifier ");
-                    emit_id( p );
+                    emit_id( fp, p );
                     break;
                     
         

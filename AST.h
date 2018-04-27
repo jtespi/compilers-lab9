@@ -67,10 +67,10 @@ void ASTprint(int level, ASTnode *p);
 
 //----------------------------------------------------------
 
-void emitASTmaster ( ASTnode *p );
+void emitASTmaster ( FILE * fp, ASTnode *p );
 void emitAST( FILE * fp, ASTnode * p );
-void emitASTstrings ( ASTnode * p );
-void emitASTglobals( ASTnode * p );
+void emitASTstrings ( FILE * fp, ASTnode * p );
+void emitASTglobals( FILE * fp, ASTnode * p );
 
 ASTnode * program;
 
