@@ -1,0 +1,6 @@
+*.txt
+*.o
+lex.yy.c
+y.tab.*
+lab9
+
