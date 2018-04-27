@@ -59,6 +59,8 @@ typedef struct ASTnodetype
 
 char * CreateTemp2();
 
+FILE * fp;
+
 ASTnode *ASTCreateNode(enum ASTtype mytype);
 void ASTAttachNext(ASTnode *p,ASTnode *q);
 void ASTprint(int level, ASTnode *p);

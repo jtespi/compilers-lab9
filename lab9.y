@@ -623,9 +623,11 @@ main(int argc, char * argv[] )
      }
      count++;
   }
-  if (custom_output == false) output_name = "output.asm";
+  if ((custom_output == false) && (output_flag == true)) output_name = "output.asm";
   
   printf(" set to output to file %s\n", output_name);
+  
+  fp = fopen( output_name, "w");
   
   /*
   if ( (argc > 1) && (strcmp( argv[1], "-d" ) == 0) ) {
