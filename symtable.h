@@ -28,17 +28,17 @@ struct SymbTab
 {
      char *name;
      int offset; /* from activation record boundary */
-     int mysize;  /* number of words this item is 1 or more */
+     int mySize;  /* number of words this item is 1 or more */
      int level;  /* the level where we found the variable */
      enum OPERATORS Type;  /* the type of the symbol */
-     int IsAFunct;  /* the element is a function */
+     int isAFunct;  /* the element is a function */
      ASTnode * fparams; /* pointer to parameters of the function in the AST */
 
      struct SymbTab *next;
 };
 
 struct SymbTab * Search(char name[], int level, int recur );
-struct SymbTab * Insert(char *name, enum OPERATORS Type, int isafunct, int  level, int mysize, int offset, ASTnode * fparams );
+struct SymbTab * Insert(char *name, enum OPERATORS Type, int isafunct, int  level, int mySize, int offset, ASTnode * fparams );
 char * CreateTemp();
 int CompareFormals( ASTnode * pfparams,  ASTnode * parglist );
 #endif

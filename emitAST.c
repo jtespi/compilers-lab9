@@ -33,7 +33,7 @@ void emitASTmaster ( FILE * fp, ASTnode *p ) {
 */
 
 void emitASTmaster ( FILE * fp, ASTnode *p ) {
-    /* Emit the header */
+    /* Emit the header every time */
     fprintf( fp, "%%include \"io64.inc\"");
     fprintf( fp, "\n");
     emitASTglobals( fp, p );
@@ -146,7 +146,7 @@ void emitAST (FILE * fp, ASTnode * p)
                     
            case WRITESTMT : if(debug)printf("WRITE statement\n");
                     /* print the expression */
-                    fprintf(fp,"HELLO:  %s",p->name); //if p->s1 == null else an exp num/func/call/variable
+                    fprintf(fp,"**WRITE:  %s",p->name); //if p->s1 == null else an exp num/func/call/variable
                     emitAST( fp, p -> s1 );
                     printf("\n");
                     

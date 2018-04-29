@@ -27,6 +27,8 @@ int offset = 0; /* analogous to a memory index */
 /* global offset to be saved before a compound statement and restored after*/
 int gOffset = 0; 
 
+int maxOffset;
+
 void yyerror (s)  /* Called by yyparse on error */
      char *s;
 {
@@ -140,7 +142,8 @@ functDec : typeSpec ID '('
         /* Before coming across the parameters, check the symbol table */
         {  if( Search( $2, level, 0) == NULL ) {
              gOffset=offset;
-             offset=0;
+             offset=2;
+             maxOffset = offset;
              Insert( $2, $1, 1, level, 1, offset, NULL );
              if(debug) printf("function declaration inserted\n");
            } else {
@@ -168,6 +171,8 @@ functDec : typeSpec ID '('
           $$ -> s1 = $5; /*  params  */
           $$ -> s2 = $8; /* compStmt */
           $$ -> symbol = Search($2, 0, 0); /* Get the symbol table entry */
+          $$ -> value = maxOffset;
+          $$ -> symbol -> mySize = maxOffset;
           
           offset -= Delete(1); /* Remove all symbols from what was put into function call */
           level = 0; /* reset the level back to 0 */
@@ -253,6 +258,7 @@ compStmt : '{'
             
            /*  Display the symbol table as specified (regardless of debug) */
            Display();
+           if ( offset > maxOffset ) maxOffset = offset;
            offset -= Delete( level );
            level--;
         }
@@ -405,7 +411,7 @@ var : ID {
 		exit(1);
 	  }
 	  
-	   if ( p -> IsAFunct != 0)
+	   if ( p -> isAFunct != 0)
 	     {
 	         yyerror($1);
 		    yyerror("Not a Scalar");
@@ -433,7 +439,7 @@ var : ID {
 		exit(1);
 	  }
 	  
-	   if ( p -> IsAFunct != 2)
+	   if ( p -> isAFunct != 2)
 	     {
 	         yyerror($1);
 		    yyerror("Not an array");
@@ -648,10 +654,10 @@ main(int argc, char * argv[] )
   
   fclose( fp );
   
-  /* TODO: Generate NASM code..... */
+  ///* DeprecatedTODO: Generate NASM code..... */
   /*
   printf(" --------- Final symbol table ----------\n");
   Display();
   */
-  printf("\n");
+  printf("Done!\n");
 }

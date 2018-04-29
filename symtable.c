@@ -31,7 +31,7 @@ char * CreateTemp()
 struct SymbTab *first=NULL;   /* global pointers into the symbol table */
 
 /* Simple Insert into the symbol table with the size, type level that the name is being inserted into */
-struct SymbTab * Insert(char *name, enum OPERATORS Type, int isafunct, int  level, int mysize, int offset , ASTnode * fparams)
+struct SymbTab * Insert(char *name, enum OPERATORS Type, int isafunct, int  level, int mySize, int offset , ASTnode * fparams)
 {
   struct SymbTab * n;
     n=Search(name,level, 0);
@@ -47,9 +47,9 @@ struct SymbTab * Insert(char *name, enum OPERATORS Type, int isafunct, int  leve
       p->name=name;
       p->offset=offset;  /* assign the offset */
       p->level=level;  /* assign the level */
-      p->mysize=mysize;  /* assign the size */
+      p->mySize=mySize;  /* assign the size */
       p->Type=Type;  /* assign the Type */
-      p->IsAFunct=isafunct;  /* assign the Function  */
+      p->isAFunct=isafunct;  /* assign the Function  */
       p->fparams=fparams;  /* assign the Function  */
       p->next=NULL;
 
@@ -134,7 +134,7 @@ int Delete(int level)
         /* do we match? */
         if (p->level >= level )
         { /* if it is the first in the list we have to update first, we know this by f being NULL */
-           SIZE+=p->mysize;
+           SIZE+=p->mySize;
            if ( f==NULL) first=p->next;
            else /* not the first element */
               {f->next = p->next;

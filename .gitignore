@@ -1,5 +1,7 @@
 *.txt
 *.o
+*.asm
+lab7*.c
 lex.yy.c
 y.tab.*
 lab9
