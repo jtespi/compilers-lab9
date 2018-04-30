@@ -252,8 +252,8 @@ compStmt : '{'
            localDec stmtList '}'
 	
         { $$ = ASTCreateNode( COMPSTMT );
-          $$->s1 = $3;
-          $$->s2 =  $4;
+          $$->s1 = $3; /* local declarations */
+          $$->s2 = $4; /* statement list */
 	    
             
            /*  Display the symbol table as specified (regardless of debug) */
@@ -371,7 +371,7 @@ returnStmt : RETURN ';'
 readStmt : READ var ';'
         { $$ = ASTCreateNode( READSTMT );
           $$ -> s1 = $2;
-         printf("Read statement\n"); 
+         if(debug)printf("Read statement\n"); 
          }
         ;
         
@@ -640,12 +640,6 @@ main(int argc, char * argv[] )
      fp = stdout;
     }
   
-  /*
-  if ( (argc > 1) && (strcmp( argv[1], "-d" ) == 0) ) {
-     debug = 1;
-     printf(" debugging enabled\n");
-  }
-  */
   /* Next call yyparse */
   yyparse();
   printf("  --- Finished parsing input/file ---\n");
@@ -654,10 +648,5 @@ main(int argc, char * argv[] )
   
   fclose( fp );
   
-  ///* DeprecatedTODO: Generate NASM code..... */
-  /*
-  printf(" --------- Final symbol table ----------\n");
-  Display();
-  */
   printf("Done!\n");
 }

@@ -92,6 +92,7 @@ void emitASTstrings ( FILE * fp, ASTnode * p ) {
             fprintf(fp, "db %s, 0", p->name); // print the string literal
             fprintf(fp, "    ;global string\n"); // print a comment
     } // end if
+    
     // alternate abstract syntax tree navigation
     else if ( p->s1 != NULL) emitASTstrings( fp, p->s1 );
     else if ( p->s2 != NULL) emitASTstrings( fp, p->s2 );
@@ -113,93 +114,101 @@ void emit_id ( FILE * fp, ASTnode * p ) {
     
 }
 
-void emit_read_num ( FILE * fp, ASTnode * p ) {
-    //printf("MOV RAX, 16\t;get Identifier offset");
-	//printf("ADD RAX, RSP\t;Add the SP to have direct reference to memory ");
-    emit_id( fp, p );
-	fprintf(fp, "GET_DEC 8, [RAX]\t; READ in an integer");
-}
-
-
 
 /*  Print out the abstract syntax tree */
 void emitAST (FILE * fp, ASTnode * p)
 {
-   if (p == NULL ) return;
-   else
-     { 
-         /* **Start of large switch structure for emitting code for the different node types** */
-       switch (p -> type) {
-           case FUNCTDEC:
+    if (p == NULL ) return;
+    /* **Start of large switch structure for emitting code for the different node types** */
+    switch (p -> type) {
+        case VARDEC:
+            //no action for vardec
+            break;
+        case FUNCTDEC:
                emitAST(fp,p->s1);
                emitAST(fp,p->s2);
                break;
-           case COMPSTMT:
+        case COMPSTMT:
                emitAST(fp,p->s1);
                emitAST(fp,p->s2);
-           case READSTMT : if(debug)printf("READ statement\n");
-                    /* print the identifier (variable) */
-                    emitAST( fp, p -> s1 );
-                    printf("\n");
-        
-                    break;
+               break;
+        case READSTMT : if(debug)printf("READ statement\n");
+                /* emit the identifier (variable), which moves it to RAX */
+                emit_id( fp, p->s1 );
+                fprintf(fp, "GET_DEC 8, [RAX]\t; READ in an integer");
+                fprintf( fp, "\n");
+                break;
                     
-           case WRITESTMT : if(debug)printf("WRITE statement\n");
-                    /* print the expression */
-                    fprintf(fp,"**WRITE:  %s",p->name); //if p->s1 == null else an exp num/func/call/variable
-                    emitAST( fp, p -> s1 );
-                    printf("\n");
+        case WRITESTMT : if(debug)printf("WRITE statement\n");
+                /* print the string */
+                if ( p -> s1 == NULL) {
+                    fprintf( fp, "PRINT_STRING\t %s", p->name);
+                }
+                else {
+                    emitAST( fp, p -> s1);
+                } // s1 is not a string
+                fprintf( fp, "\n");
                     
-                    break;
+                break;
                     
-            case IDENTIFIER : if(debug)printf("Identifier ");
-                    emit_id( fp, p );
-                    break;
+        case IDENTIFIER : if(debug)printf("Identifier\n");
+                // no action
+                break;
                     
         
         /* print the expression */
         case EXPR : 
                     /* print the operator */
                     switch ( p -> operator ) {
-                        case LESSEQ : printf("<=");
+                        case LESSEQ : if(debug)printf("operator <=");
                             break;
-                        case LESS : printf("<");
+                        case LESS : if(debug)printf("operator <");
                             break;
-                        case GREATER : printf(">");
+                        case GREATER : if(debug)printf("operator >");
                             break;
-                        case GREATEREQ : printf(">=");
+                        case GREATEREQ : if(debug)printf("operator >=");
                             break;
-                        case EQUAL : printf("=");
+                        case EQUAL : if(debug)printf("operator =");
                             break;
-                        case NOTEQ : printf("!=");
+                        case NOTEQ : if(debug)printf("operator !=");
                             break;
-                        case PLUS : printf("+");
+                        case PLUS : if(debug)printf("operator +");
                             break;
-                        case MINUS : printf("-");
+                        case MINUS : if(debug)printf("operator -");
                             break;
-                        case TIMES : printf("*");
+                        case TIMES : if(debug)printf("operator *");
                             break;
-                        case DIVIDE : printf("/");
+                        case DIVIDE : if(debug)printf("operator /");
                             break;
                             
-                        default : printf("<unknown op>");
+                        default : printf("<unknown operator>");
                     } /* end switch for operator */
                     printf("\n");
                     
-                    /* print the term to the left of the operator */
+                    /* emit the term to the left of the operator */
                     emitAST( fp, p -> s1 );
                     
-                    /* print the term to the right of the operator */
+                    /* emit the term to the right of the operator */
                     emitAST( fp, p -> s2 );
         
-                    break;
-                     
-        default: printf("*** Unknown type in emitAST\n");
+                    break; // break case expr
+        
+        case NUMBER: // no action
+            break;
+            
+        case CALL: // no action
+            break;
+            
+        case ARGLIST : // no action
+            break;
+        
+        default: printf("*** Unknown type '%d' in emitAST\n", p->type);
+            break;
 
 
-       } /* end switch */
+       } /* end large switch */
        
+       // move to the next node in the AST
        emitAST( fp, p -> next);
-     }
 
 } /* end function emitAST */
