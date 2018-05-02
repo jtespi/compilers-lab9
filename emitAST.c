@@ -93,6 +93,29 @@ void emit_id ( FILE * fp, ASTnode * p ) {
     
 }
 
+void emit_expr( FILE * fp, ASTnode * p) {
+    // left hand side
+    switch( p->s1->type) {
+        case NUMBER:
+            fprintf(fp, "\tMOV RAX, %d\n", p->s1->value);
+            break;
+        
+        case IDENTIFIER: emit_id(fp, p->s1);
+            fprintf(fp, "\tMOV RAX, [RAX]\n");
+            break;
+        
+        case EXPR: emit_expr(fp, p->s1);
+            fprintf(fp, "\tMOV RAX, [RSP+%d]\n", (p->s1->symbol->offset)*8);
+            break;
+            
+        case CALL: //coming soon
+            break;
+        default: fprintf(fp, "\t;broken expr LHS\n");
+        
+    }
+    
+    // more coming soon....
+}
 
 /*  Print out the abstract syntax tree */
 void emitAST (FILE * fp, ASTnode * p)
