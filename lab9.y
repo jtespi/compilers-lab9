@@ -604,10 +604,6 @@ argList : expr {
 
 main(int argc, char * argv[] )
 { 
-  /* printf("arguments entered:\n");
-  while ( argc-- ) {
-     printf("%s\n", argv[argc]);
-  } */
   bool debug_flag = false;
   bool output_flag = false;
   bool custom_output = false;
@@ -642,6 +638,7 @@ main(int argc, char * argv[] )
   
   /* Next call yyparse */
   yyparse();
+  
   printf("  --- Finished parsing input/file ---\n");
   
   emitASTmaster( fp, program );

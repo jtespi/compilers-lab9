@@ -12,26 +12,6 @@
 
 extern int debug; // debug flag from yacc file
 
-/* ****
-void emitASTmaster ( FILE * fp, ASTnode *p ) {
-    /* Emit the header */ /*
-    fprintf( fp, "%%include \"io64.inc\"");
-    fprintf( fp, "\n");
-    emitASTglobals( fp, p );
-    fprintf( fp, "\nsection .data\t ;section for global strings\n");
-    emitASTstrings( fp, p );
-    fprintf( fp, "\nsection .text\n");
-    fprintf( fp, "\tglobal main\n");
-    
-    /* After the header is set up, 
-        emit code for any and all functions */ /*
-    emitAST( fp, p ); /*
-    
-    fprintf( fp, "\n  ; end program");
-    
-} 
-*/
-
 void emitASTmaster ( FILE * fp, ASTnode *p ) {
     /* Emit the header every time */
     fprintf( fp, "%%include \"io64.inc\"");
@@ -44,7 +24,7 @@ void emitASTmaster ( FILE * fp, ASTnode *p ) {
     
     /* After the header is set up, 
         emit code for any and all functions */
-    emitAST( fp, p);
+    emitAST( fp, p );
     
     fprintf( fp, "\n  ; end program\n");
     
@@ -83,7 +63,6 @@ void emitASTglobals( FILE * fp, ASTnode * p ) {
 } // end emitASTglobals
 
 
-
 void emitASTstrings ( FILE * fp, ASTnode * p ) {
     if ( p == NULL ) return;
     if ( (p -> type == WRITESTMT) && (p->strlabel != NULL) ) {
@@ -106,10 +85,10 @@ void emitASTstrings ( FILE * fp, ASTnode * p ) {
 void emit_id ( FILE * fp, ASTnode * p ) {
     // check if id is a global var
     if ( p->symbol->level == 0 ) {
-        fprintf(fp, "MOV  RAX, %s\t;get identifier offset\n", p->name);
+        fprintf(fp, "\tMOV  RAX, %s\t;get identifier offset\n", p->name);
     } else {
-        fprintf(fp, "MOV  RAX, %d\t;get identifier offset\n", (p->symbol->offset)*8);
-        fprintf(fp, "ADD  RAX, RSP\t;Add SP to have direct ref to mem\n");
+        fprintf(fp, "\tMOV  RAX, %d\t;get identifier offset\n", (p->symbol->offset)*8);
+        fprintf(fp, "\tADD  RAX, RSP\t;Add SP to have direct ref to mem\n");
     }
     
 }
@@ -124,29 +103,75 @@ void emitAST (FILE * fp, ASTnode * p)
         case VARDEC:
             //no action for vardec
             break;
-        case FUNCTDEC:
-               emitAST(fp,p->s1);
+            
+        case FUNCTDEC: // first print the function's name
+               fprintf(fp, "%s: \n", p->name);
+               if ( strcmp( p->name, "main") == 0 ) // if the current function is main
+                   fprintf(fp, "\tMOV RBP, RSP\t;move rsp into rbp for main ONLY!\n");
+               // ***
+               // set up each function
+               fprintf(fp,"\tMOV R8, RSP\t;copy stack pointer to R8\n");
+               fprintf(fp,"\tADD R8, -%d\t;adjust stack pointer for activation record\n", (p->value)*8);
+               fprintf(fp,"\tMOV [R8], RBP\t;store the old BP\n");
+               fprintf(fp,"\tMOV [R8+8], RSP\t;store old SP\n");
+               
+               fprintf(fp,"\tMOV RSP, R8\t;set the new stack pointer\n\n");
+               // not needed: s1 is params emitAST(fp,p->s1);
                emitAST(fp,p->s2);
+               
+               //function teardown
+               fprintf(fp,"\tMOV RBP, [RSP]\t;restore the old BP from memory\n");
+               fprintf(fp,"\tMOV RSP, [RSP+8]\t;restore the old SP\n");
+               if ( strcmp( p->name, "main") == 0 ) {
+                   fprintf(fp,"\tMOV RSP, RBP\t;SP and BP need to be the same value, for main ONLY!\n");
+               }
+               fprintf(fp,"\tRET\n");
+               
                break;
+               
         case COMPSTMT:
                emitAST(fp,p->s1);
                emitAST(fp,p->s2);
                break;
+               
         case READSTMT : if(debug)printf("READ statement\n");
                 /* emit the identifier (variable), which moves it to RAX */
                 emit_id( fp, p->s1 );
-                fprintf(fp, "GET_DEC 8, [RAX]\t; READ in an integer");
+                fprintf(fp, "\tGET_DEC 8, [RAX]\t; READ in an integer");
                 fprintf( fp, "\n");
                 break;
                     
         case WRITESTMT : if(debug)printf("WRITE statement\n");
                 /* print the string */
                 if ( p -> s1 == NULL) {
-                    fprintf( fp, "PRINT_STRING\t %s", p->name);
+                    fprintf( fp, "\tPRINT_STRING\t %s\t;print a string\n", p->strlabel);
+                    fprintf( fp, "\tNEWLINE\n");
                 }
                 else {
-                    emitAST( fp, p -> s1);
-                } // s1 is not a string
+                    
+                    switch( p->s1->type) {
+                        case NUMBER: fprintf(fp, "\tMOV rsi, %d\t;move the value of the number into rsi\n", p->s1->value);
+                             break;
+                             
+                        case IDENTIFIER: emit_id(fp, p->s1); //emit the identifier
+                             // the identifier is now stored in RAX
+                             // move RAX to RSI
+                             fprintf(fp, "\tMOV RSI, [RAX]\t;load immediate val from rax to rsi\n");
+                             break;
+                             
+                        case EXPR: //emit_expr(fp, p->s1); // emit the expression
+                            fprintf(fp,"\tMOV RSI, [RSP+%d]\t;rsp plus offset holds the value of the expr\n", (p->s1->symbol->offset)*8);
+                            break;
+                            
+                        case CALL: //emit a function call, coming soon
+                            break;
+                            
+                        default: fprintf(fp, "\t;ERROR: Unknown value in write statement!\n");
+                    } // end switch
+                    fprintf(fp, "\tPRINT_DEC 8 , rsi\t;standard write a value\n");
+                    fprintf(fp, "\tNEWLINE\n");
+                    //emitAST( fp, p -> s1);
+                } // end else: s1 is not a string
                 fprintf( fp, "\n");
                     
                 break;
@@ -200,6 +225,9 @@ void emitAST (FILE * fp, ASTnode * p)
             break;
             
         case ARGLIST : // no action
+            break;
+            
+        case ASSNSTMT: //no action
             break;
         
         default: printf("*** Unknown type '%d' in emitAST\n", p->type);
