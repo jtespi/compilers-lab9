@@ -197,7 +197,7 @@ void emit_expr( FILE * fp, ASTnode * p) {
  
 } // **end function emit expression
 
-/*  Print out the abstract syntax tree */
+/* Emit NASM code following the abstract syntax tree */
 void emitAST (FILE * fp, ASTnode * p)
 {
     if (p == NULL ) return;
@@ -317,7 +317,47 @@ void emitAST (FILE * fp, ASTnode * p)
             fprintf(fp, "\tMOV RBX, [RSP + %d]\t;move from RSP + offset into RBX\n", (p->s2->symbol->offset)*8);
             fprintf(fp, "\tMOV [RAX], RBX\t;move from rbx into rax\n");
             break;
-        
+
+        /* if-statement case */
+        case SELECTSTMT:
+            // create the temporary labels
+            L1=CreateTempLbl();
+            L2=CreateTempLbl();
+
+            fprintf(fp, "\n%s:  ;Label for start of if statement\n", L1);
+
+            switch(p->s1->type) {
+               case NUMBER: fprintf(fp,"\tMOV RAX, %d;IFSTMT load immediate into rax\n", p->s1->value);
+                break;
+               
+               case IDENTIFIER: emit_id(fp, p->s1);
+                fprintf(fp, "\tMOV RAX, [RAX]\t;IFSTMT copy value into rax after emit_id\n");
+                break;
+
+               case CALL: fprintf(fp, "\t;IFSTMT call, coming soon...\n");
+                break;   
+
+              // most common case, expression
+               case EXPR: emit_expr(fp, p->s1);
+                fprintf(fp, "\tMOV RAX, [RSP + %d]\t;IFSTMT expr, move into rax from SP + offset\n", (p->s1->symbol->offset)*8);
+                break;
+               
+               default: fprintf(fp,"\t;Error in IFSTMT\n");
+            } // end switch for SELECTSTMT
+
+            fprintf(fp, "\tCMP rax, 0\t;IF comparison\n");
+            fprintf(fp, "\tJE %s\t\t;IF condition, jump to else part\n", L2);
+
+            emitAST(fp, p->s1); //emit statement 1 of the if statement
+
+            fprintf(fp, "\tJMP %s\t\t;end of IF statement1 (s1)\n", L1);
+
+            fprintf(fp, "\n%s:\t;Label for start of else part\n", L2);
+
+            emitAST(fp, p->s2); //emit statement 2 of the if statement
+
+            break; // END case SELECTSTMT
+
         default: printf("*** Unknown type '%d' in emitAST\n", p->type);
             break;
 

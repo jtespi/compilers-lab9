@@ -5,19 +5,19 @@
 #include <ctype.h>
 
 enum ASTtype {
-   VARDEC,
-   INTTYPE, /**/
-   VOIDTYPE, /**/
+   VARDEC, /*value = 0*/
+   INTTYPE,
+   VOIDTYPE,
    IDENTIFIER,
    FUNCTDEC,
-   PARAMS, /**/
-   PARAM, /**/
+   PARAMS,
+   PARAM,
    COMPSTMT,
    LOCALDEC,
    STMTLIST,
    EXPRSTMT,
-   SELECTSTMT,
-   ITERSTMT,
+   SELECTSTMT, /*AKA if-statement, value = 10*/
+   ITERSTMT, /*AKA while-statement, value = 11*/
    ASSNSTMT,
    RETURNSTMT,
    READSTMT,
@@ -26,10 +26,10 @@ enum ASTtype {
    NUMBER,
    TERM,
    ARGLIST,
-   CALL
+   CALL  /*value = 20*/
 };
 enum OPERATORS {
-   PLUS,
+   PLUS, /*value = 0*/
    MINUS,
    TIMES,
    DIVIDE,
@@ -38,7 +38,7 @@ enum OPERATORS {
    GREATER,
    LESS,
    EQUAL,
-   NOTEQ,
+   NOTEQ, /*value = 9*/
 
    INTDEC,
    VOIDDEC
@@ -57,15 +57,18 @@ typedef struct ASTnodetype
      char * strlabel;
 } ASTnode;
 
-char * CreateTemp2();
-
-FILE * fp;
-
 ASTnode *ASTCreateNode(enum ASTtype mytype);
 void ASTAttachNext(ASTnode *p,ASTnode *q);
 void ASTprint(int level, ASTnode *p);
 
-//----------------------------------------------------------
+//-------- Functions & data contained in emitAST.c ---------------------------
+
+FILE * fp; //file pointer object
+char * L1; //label 1
+char * L2; //label 2
+
+char * CreateTemp2();
+char * CreateTempLbl();
 
 void emitASTmaster ( FILE * fp, ASTnode *p );
 void emitAST( FILE * fp, ASTnode * p );

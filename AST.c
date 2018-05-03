@@ -31,11 +31,22 @@ static int mydebug;
 */
 int GTEMPS=0;  /* Global Temp counter */
 
+int GTEMPS2=0;
+
 char * CreateTemp2()
 {    char hold[100];
      char *s;
      sprintf(hold,"_STR%d",GTEMPS++);
      s=strdup(hold);
+     return (s);
+}
+
+/* Creates a temporary label */
+char * CreateTempLbl() {
+     char hold[100];
+     char * s;
+     sprintf(hold, "_L%d", GTEMPS2++);
+     s = strdup( hold );
      return (s);
 }
 
