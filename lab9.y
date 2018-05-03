@@ -326,8 +326,8 @@ selectStmt : IF  '(' expr ')' statement %prec IFX
 /* an iteration statement is used for a while loop */             
 iterStmt : WHILE '(' expr ')' statement
         { $$ = ASTCreateNode( ITERSTMT );
-          $$ -> s1 = $3;
-          $$ -> s2 = $5;
+          $$ -> s1 = $3; /* expression */
+          $$ -> s2 = $5; /* statement */
           printf("--found a while loop\n"); 
           }
         ;

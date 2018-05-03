@@ -83,6 +83,35 @@ void emitASTstrings ( FILE * fp, ASTnode * p ) {
 
 
 void emit_id ( FILE * fp, ASTnode * p ) {
+    // *** array functionality
+    if ( p->s1 != NULL ) { // if s1 is not null, the ID is an array
+        
+    switch ( p->s1->type ) {
+        case NUMBER: 
+            fprintf(fp, "\tMOV RBX, %d\t;load immediate into RBX\n", (p->s1->value)*8);
+            break;
+        
+        case IDENTIFIER:
+            emit_id(fp, p->s1);
+            fprintf(fp, "\tMOV RBX, [RAX]\t;move into rbx after emit_id\n");
+            fprintf(fp, "\tSHL RBX, 3\t;get the true array size, multiply by 8\n");
+            break;
+            
+        case EXPR:
+            emit_expr(fp, p->s1);
+            fprintf(fp, "\tMOV RBX, [RSP + %d]\t;move from SP to RBX\n", (p->s1->symbol->offset)*8);
+            fprintf(fp, "\tSHL RBX, 3\t;get the true array size, multiply by 8\n");
+            break;
+            
+        case CALL: //call coming soon
+            break;
+        
+        default: fprintf(fp, "\t;Error in array identifier\n");
+        break;
+    } // end switch for arrays
+    
+    } // end if s1 is not null
+    
     // check if id is a global var
     if ( p->symbol->level == 0 ) {
         fprintf(fp, "\tMOV  RAX, %s\t;get identifier offset\n", p->name);
@@ -324,25 +353,25 @@ void emitAST (FILE * fp, ASTnode * p)
             L1=CreateTempLbl();
             L2=CreateTempLbl();
 
-            fprintf(fp, "\n%s:  ;Label for start of if statement\n", L1);
+            fprintf(fp, "\n%s:\t;Label for start of if statement\n", L1);
 
             switch(p->s1->type) {
-               case NUMBER: fprintf(fp,"\tMOV RAX, %d;IFSTMT load immediate into rax\n", p->s1->value);
+               case NUMBER: fprintf(fp,"\tMOV RAX, %d;IF load immediate into rax\n", p->s1->value);
                 break;
                
                case IDENTIFIER: emit_id(fp, p->s1);
-                fprintf(fp, "\tMOV RAX, [RAX]\t;IFSTMT copy value into rax after emit_id\n");
+                fprintf(fp, "\tMOV RAX, [RAX]\t;IF copy value into rax after emit_id\n");
                 break;
 
-               case CALL: fprintf(fp, "\t;IFSTMT call, coming soon...\n");
+               case CALL: fprintf(fp, "\t;IF call, coming soon...\n");
                 break;   
 
               // most common case, expression
                case EXPR: emit_expr(fp, p->s1);
-                fprintf(fp, "\tMOV RAX, [RSP + %d]\t;IFSTMT expr, move into rax from SP + offset\n", (p->s1->symbol->offset)*8);
+                fprintf(fp, "\tMOV RAX, [RSP + %d]\t;IF expr, move into rax from SP + offset\n", (p->s1->symbol->offset)*8);
                 break;
                
-               default: fprintf(fp,"\t;Error in IFSTMT\n");
+               default: fprintf(fp,"\t;Error in SELECTSTMT (if)!\n");
             } // end switch for SELECTSTMT
 
             fprintf(fp, "\tCMP rax, 0\t;IF comparison\n");
@@ -350,15 +379,53 @@ void emitAST (FILE * fp, ASTnode * p)
 
             emitAST(fp, p->s1); //emit statement 1 of the if statement
 
-            fprintf(fp, "\tJMP %s\t\t;end of IF statement1 (s1)\n", L1);
-
+            fprintf(fp, "\tJMP %s\t\t;end of IF statement1 (s1), go back to check condition\n", L1);
             fprintf(fp, "\n%s:\t;Label for start of else part\n", L2);
 
             emitAST(fp, p->s2); //emit statement 2 of the if statement
 
             break; // END case SELECTSTMT
+            
+        /* while-statement case */
+        case ITERSTMT: // ITERSTMT is a while loop statement
+            // create the temporary labels
+            L1 = CreateTempLbl();
+            L2 = CreateTempLbl();
+            
+            fprintf(fp, "\n%s:\t;Label - start of while statement\t", L1);
+            
+            switch ( p->s1->type ) {
+                case NUMBER: fprintf(fp, "\tMOV RAX, %d\t;While stmt load immediate into rax\n", p->s1->value);
+                  break;
+                
+                case IDENTIFIER: emit_id(fp, p->s1);
+                  fprintf(fp, "\tMOV RAX, [RAX]\t;While stmt copy value into rax after emit_id\n");
+                  break;
+                  
+                case CALL: fprintf(fp, "\t;While stmt call, coming soon...\n");
+                  break;
+                  
+                case EXPR: emit_expr(fp, p->s1);
+                  fprintf(fp, "\tMOV RAX, [RSP + %d]\t;While stmt expr, move into rax from SP + offset\n", (p->s1->symbol->offset)*8);
+                  break;
+                  
+                default: fprintf(fp, "\tError in While statement!\n");
+            } // end switch for ITERSTMT
+            
+            fprintf(fp, "\tCMP RAX, 0\t;WHILE comparison\n");
+            fprintf(fp, "\tJE %s\t\t;WHILE condition, jump to end\n", L2);
+            
+            emitAST(fp, p->s1); //emit the body of the while loop (statement 1)
+            
+            fprintf(fp, "\tJMP %s\t\t;end of while, go back to check condition\n", L1);
+            
+            fprintf(fp, "\n%s:\t;Label - end of while statement\t", L2);
+            
+            break; // END case ITERSTMT
+            
 
         default: printf("*** Unknown type '%d' in emitAST\n", p->type);
+            fprintf(fp,"\t;*** Unknown type (%d) in emitAST\n", p->type);
             break;
 
 

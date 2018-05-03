@@ -70,6 +70,9 @@ char * L2; //label 2
 char * CreateTemp2();
 char * CreateTempLbl();
 
+void emit_id ( FILE * fp, ASTnode *p );
+void emit_expr( FILE * fp, ASTnode *p);
+
 void emitASTmaster ( FILE * fp, ASTnode *p );
 void emitAST( FILE * fp, ASTnode * p );
 void emitASTstrings ( FILE * fp, ASTnode * p );
