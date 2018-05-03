@@ -100,22 +100,102 @@ void emit_expr( FILE * fp, ASTnode * p) {
             fprintf(fp, "\tMOV RAX, %d\n", p->s1->value);
             break;
         
-        case IDENTIFIER: emit_id(fp, p->s1);
+        case IDENTIFIER: 
+            emit_id(fp, p->s1);
             fprintf(fp, "\tMOV RAX, [RAX]\n");
             break;
         
-        case EXPR: emit_expr(fp, p->s1);
-            fprintf(fp, "\tMOV RAX, [RSP+%d]\n", (p->s1->symbol->offset)*8);
+        case EXPR: 
+            emit_expr(fp, p->s1); // a recursive call to emit expression
+            fprintf(fp, "\tMOV RAX, [RSP + %d]\n", (p->s1->symbol->offset)*8);
             break;
             
         case CALL: //coming soon
             break;
-        default: fprintf(fp, "\t;broken expr LHS\n");
-        
-    }
+        default: fprintf(fp, "\t;broken expr LHS!\n");
+            break;    
+    } // end first switch
+
+    // move LHS value from rax to rsp with offset
+    fprintf(fp, "\tMOV [RSP + %d], RAX\n", (p->symbol->offset)*8);
+
+    // right hand side
+    switch( p->s2->type ) {
+        case NUMBER:
+            fprintf(fp, "\tMOV RBX, %d\t;store immediate into rbx\n", p->s2->value);
+            break;
+
+        case IDENTIFIER:
+            emit_id(fp, p->s2);
+            fprintf(fp, "\tMOV RBX, [RAX]\t;move from rax to rbx\n");
+            break;
+
+        case EXPR:
+            emit_expr( fp, p->s2 );
+            fprintf(fp, "\tMOV RBX, [RSP + %d]\t;move value from rsp + offset into rbx\n", (p->s2->symbol->offset)*8);
+            break;
+
+        case CALL: //coming soon
+            break;
+
+        default: fprintf(fp, "\t;broken expr RHS!\n");
+
+    } // end second switch
     
-    // more coming soon....
-}
+    // move the value from stack pointer into rax
+    fprintf(fp, "\tMOV RAX, [RSP + %d]\n", (p->symbol->offset)*8);
+
+   /**** After doing both LHS and RHS, evaluate any operators */
+
+   switch( p->operator) {
+       case PLUS: fprintf(fp, "\tADD RAX, RBX\t;add operation\n");
+          break;
+       case MINUS: fprintf(fp, "\tSUB RAX, RBX\t;subtract operation\n");
+          break;
+       case TIMES: fprintf(fp, "\tIMUL RAX, RBX\t;multiplication operation\n");
+          break;
+       case DIVIDE: fprintf(fp, "\tXOR RDX, RDX\t;clear out rdx\n");
+          fprintf(fp, "\tIDIV RBX\t;division operation\n");
+          break;
+       case EQUAL: fprintf(fp, "\tCMP RAX, RBX\t;equals operation\n");
+          fprintf(fp, "\tSETE AL\t;set rax lower to equal??\n");
+          fprintf(fp, "\tMOV RBX, 1\t;set rbx to 1 to filter the value in rax\n");
+          fprintf(fp, "\tAND RAX, RBX\t;filter rax comparison\n");
+          break;
+       case NOTEQ: fprintf(fp, "\tCMP RAX, RBX\t;not equals operation compare\n");
+          fprintf(fp, "\tSETNE AL\t;set rax lower to not equal\n");
+          fprintf(fp, "\tMOV RBX, 1\t;rbx = 1 to filter rax\n");
+          fprintf(fp, "\tAND RAX, RBX\t;filter rax comparison\n");
+          break;
+       case LESS: fprintf(fp, "\tCMP RAX, RBX ;less than operation compare\n");
+          fprintf(fp, "\tSETL AL\t;set rax lower to lower\n");
+          fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
+          fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
+          break;
+       case GREATER: fprintf(fp, "\tCMP RAX, RBX\t;greater than operation compare\n");
+          fprintf(fp, "\tSETG AL\t;set rax lower to greater\n");
+          fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
+          fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
+          break;
+       case LESSEQ: fprintf(fp, "\tCMP RAX, RBX\t;less than or equal to operation compare\n");
+          fprintf(fp, "\tSETLE AL\t;set rax lower to less than or equal to\n");
+          fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
+          fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
+          break;
+
+       case GREATEREQ: fprintf(fp, "\tCMP RAX, RBX\t;greater than or equal to operation compare\n");
+          fprintf(fp, "\tSETGE AL\t;set rax lower to greater than or equal to\n");
+          fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
+          fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
+          break;
+
+        default: fprintf(fp, "\t;unknown operator '%d'\n", p->operator);
+    } // end operator switch
+    
+    // store the value from rax into the stack pointer + offset
+    fprintf(fp, "\tMOV [RSP + %d], RAX\n", (p->symbol->offset)*8);
+ 
+} // **end function emit expression
 
 /*  Print out the abstract syntax tree */
 void emitAST (FILE * fp, ASTnode * p)
@@ -182,7 +262,7 @@ void emitAST (FILE * fp, ASTnode * p)
                              fprintf(fp, "\tMOV RSI, [RAX]\t;load immediate val from rax to rsi\n");
                              break;
                              
-                        case EXPR: //emit_expr(fp, p->s1); // emit the expression
+                        case EXPR: emit_expr(fp, p->s1); // emit the expression
                             fprintf(fp,"\tMOV RSI, [RSP+%d]\t;rsp plus offset holds the value of the expr\n", (p->s1->symbol->offset)*8);
                             break;
                             
@@ -204,53 +284,20 @@ void emitAST (FILE * fp, ASTnode * p)
                 break;
                     
         
-        /* print the expression */
-        case EXPR : 
-                    /* print the operator */
-                    switch ( p -> operator ) {
-                        case LESSEQ : if(debug)printf("operator <=");
-                            break;
-                        case LESS : if(debug)printf("operator <");
-                            break;
-                        case GREATER : if(debug)printf("operator >");
-                            break;
-                        case GREATEREQ : if(debug)printf("operator >=");
-                            break;
-                        case EQUAL : if(debug)printf("operator =");
-                            break;
-                        case NOTEQ : if(debug)printf("operator !=");
-                            break;
-                        case PLUS : if(debug)printf("operator +");
-                            break;
-                        case MINUS : if(debug)printf("operator -");
-                            break;
-                        case TIMES : if(debug)printf("operator *");
-                            break;
-                        case DIVIDE : if(debug)printf("operator /");
-                            break;
-                            
-                        default : printf("<unknown operator>");
-                    } /* end switch for operator */
-                    printf("\n");
-                    
-                    /* emit the term to the left of the operator */
-                    emitAST( fp, p -> s1 );
-                    
-                    /* emit the term to the right of the operator */
-                    emitAST( fp, p -> s2 );
-        
-                    break; // break case expr
-        
+        case EXPR : // EXPR statement already handled expressions
+                break;        
         case NUMBER: // no action
-            break;
-            
+            break;   
         case CALL: // no action
             break;
-            
         case ARGLIST : // no action
             break;
             
-        case ASSNSTMT: //no action
+        case ASSNSTMT: // call emitAST for s2 first
+            emitAST( fp, p->s2 );
+            emit_id( fp, p->s1 );
+            fprintf(fp, "\tMOV RBX, [RSP + %d]\t;move from RSP + offset into RBX\n", (p->s2->symbol->offset)*8);
+            fprintf(fp, "\tMOV [RAX], RBX\t;move from rbx into rax\n");
             break;
         
         default: printf("*** Unknown type '%d' in emitAST\n", p->type);

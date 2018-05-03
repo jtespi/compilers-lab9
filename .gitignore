@@ -5,4 +5,6 @@ lab7*.c
 lex.yy.c
 y.tab.*
 lab9
-
+*{test}*.c
+*test*
+test*
