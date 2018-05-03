@@ -278,14 +278,32 @@ void emitAST (FILE * fp, ASTnode * p)
                 fprintf( fp, "\n");
                     
                 break;
-                    
+                
+        case EXPRSTMT : if(debug)printf("emitAST: ExprStmt\n");
+                if( p->s1 != NULL ) {
+                switch( p->s1->type ) {
+                    // **** segmentation fault occurs here
+                    case NUMBER: printf("case number\n"); fprintf(fp, "\tMOV RAX, %d\t;load immediate into rax\n", p->s1->value);
+                        break;
+                    case IDENTIFIER: emit_id(fp, p->s1); printf("case identifier\n");
+                        fprintf(fp, "\tMOV RAX, [RAX]\t;move address of rax into rax\n");
+                        break;
+                    case EXPR: emit_expr(fp, p->s1); printf("case expresssion\n");
+                        fprintf(fp, "\tMOV RAX, [RSP + %d]\t;get value from rsp + offset and store in rax\n", (p->s1->symbol->offset)*8);
+                        break;
+                    default: fprintf(fp, "\t;invalid expression statement\n");
+                } // end switch in expression statement
+                fprintf(fp, "\tMOV [RSP + %d], RAX\t;move from rax into rsp + offset\n", (p->s1->symbol->offset)*8);
+                }
+                break;
+                
         case IDENTIFIER : if(debug)printf("Identifier\n");
                 // no action
                 break;
                     
         
-        case EXPR : // EXPR statement already handled expressions
-                break;        
+        case EXPR: // EXPR statement already handled expressions
+            break;        
         case NUMBER: // no action
             break;   
         case CALL: // no action
