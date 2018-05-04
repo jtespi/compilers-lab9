@@ -16,6 +16,7 @@ void emitASTmaster ( FILE * fp, ASTnode *p ) {
     /* Emit the header every time */
     fprintf( fp, "%%include \"io64.inc\"");
     fprintf( fp, "\n");
+    fprintf( fp, ";global variables\n");
     emitASTglobals( fp, p );
     fprintf( fp, "\nsection .data\t ;section for global strings\n");
     emitASTstrings( fp, p );
@@ -88,7 +89,7 @@ void emit_id ( FILE * fp, ASTnode * p ) {
     
     // *** array functionality
     if ( p->s1 != NULL ) { // if s1 is not null, the ID is an array
-        
+    fprintf(fp, "\t;identifier is an array\n");
     switch ( p->s1->type ) {
         case NUMBER: 
             fprintf(fp, "\tMOV RBX, %d\t;load immediate into RBX\n", (p->s1->value)*8);
@@ -129,6 +130,8 @@ void emit_id ( FILE * fp, ASTnode * p ) {
 }
 
 void emit_expr( FILE * fp, ASTnode * p) {
+    fprintf(fp, "\n\t;Emitting expression...\n");
+    
     // left hand side
     switch( p->s1->type) {
         case NUMBER:
@@ -181,7 +184,7 @@ void emit_expr( FILE * fp, ASTnode * p) {
     fprintf(fp, "\tMOV RAX, [RSP + %d]\n", (p->symbol->offset)*8);
 
    /**** After doing both LHS and RHS, evaluate any operators */
-
+   fprintf(fp, "\t;Operator in expression\n");
    switch( p->operator) {
        case PLUS: fprintf(fp, "\tADD RAX, RBX\t;add operation\n");
           break;
@@ -193,33 +196,33 @@ void emit_expr( FILE * fp, ASTnode * p) {
           fprintf(fp, "\tIDIV RBX\t;division operation\n");
           break;
        case EQUAL: fprintf(fp, "\tCMP RAX, RBX\t;equals operation\n");
-          fprintf(fp, "\tSETE AL\t;set rax lower to equal??\n");
+          fprintf(fp, "\tSETE AL \t;set rax lower to equal??\n");
           fprintf(fp, "\tMOV RBX, 1\t;set rbx to 1 to filter the value in rax\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter rax comparison\n");
           break;
        case NOTEQ: fprintf(fp, "\tCMP RAX, RBX\t;not equals operation compare\n");
-          fprintf(fp, "\tSETNE AL\t;set rax lower to not equal\n");
+          fprintf(fp, "\tSETNE AL \t;set rax lower to not equal\n");
           fprintf(fp, "\tMOV RBX, 1\t;rbx = 1 to filter rax\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter rax comparison\n");
           break;
        case LESS: fprintf(fp, "\tCMP RAX, RBX ;less than operation compare\n");
-          fprintf(fp, "\tSETL AL\t;set rax lower to lower\n");
+          fprintf(fp, "\tSETL AL \t;set rax lower to lower\n");
           fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
           break;
        case GREATER: fprintf(fp, "\tCMP RAX, RBX\t;greater than operation compare\n");
-          fprintf(fp, "\tSETG AL\t;set rax lower to greater\n");
+          fprintf(fp, "\tSETG AL \t;set rax lower to greater\n");
           fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
           break;
        case LESSEQ: fprintf(fp, "\tCMP RAX, RBX\t;less than or equal to operation compare\n");
-          fprintf(fp, "\tSETLE AL\t;set rax lower to less than or equal to\n");
+          fprintf(fp, "\tSETLE AL \t;set rax lower to less than or equal to\n");
           fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
           break;
 
        case GREATEREQ: fprintf(fp, "\tCMP RAX, RBX\t;greater than or equal to operation compare\n");
-          fprintf(fp, "\tSETGE AL\t;set rax lower to greater than or equal to\n");
+          fprintf(fp, "\tSETGE AL \t;set rax lower to greater than or equal to\n");
           fprintf(fp, "\tMOV RBX, 1\t;set rbx to one for a filter\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter RAX\n");
           break;
@@ -388,7 +391,6 @@ void emitAST (FILE * fp, ASTnode * p)
 
             emitAST(fp, p->s2); //emit statement 1 of the if statement
 
-            //fprintf(fp, "\tJMP %s\t\t;end of IF statement1 (s1), go back to check condition\n", L1);
             fprintf(fp, "\n%s:\t;Label for start of else part\n", L2);
 
             emitAST(fp, p->s3); //emit statement 2 of the if statement
@@ -433,7 +435,7 @@ void emitAST (FILE * fp, ASTnode * p)
             break; // END case ITERSTMT
             
 
-        default: printf("*** Unknown type '%d' in emitAST\n", p->type);
+        default: printf("*** Unknown type (%d) in emitAST\n", p->type);
             fprintf(fp,"\t;*** Unknown type (%d) in emitAST\n", p->type);
             break;
 

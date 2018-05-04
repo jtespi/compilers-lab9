@@ -14,9 +14,14 @@ int main(void) {
   x = 5;
   array[0] = 42;
   array[1] = 41;
+  array[ 1 + 1 - 2] = 10;
+  array[42] = 442;
+ 
+  write "array[ array[0] ] is:";
+  write array[ array[ 0 ] ];
   
-  write "array[0] equals:";
-  write array[0];
+  write "array[1] equals:";
+  write array[1];
 
   if ( x == 5 ) {
      write "in body of if stmt";

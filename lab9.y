@@ -448,6 +448,7 @@ var : ID {
 	    $$ -> name = $1; /* Might need to be pointer to symbol table */
 	    $$ -> isType = p -> Type; /* get the type from the symbol table */
 	    $$ -> symbol = p;
+	    $$ -> s1 = $3;
     }
 	   
     ;
