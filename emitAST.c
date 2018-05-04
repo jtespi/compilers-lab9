@@ -123,6 +123,9 @@ void emit_id ( FILE * fp, ASTnode * p ) {
         fprintf(fp, "\tMOV  RAX, %d\t;get identifier offset\n", (p->symbol->offset)*8);
         fprintf(fp, "\tADD  RAX, RSP\t;Add SP to have direct ref to mem\n");
     }
+
+    if ( p->s1 != NULL ) 
+        fprintf(fp, "\tADD RAX, RBX\t;add array component into rax\n");
     
     // separate each identifier with a newline
     fprintf(fp, "\n");
@@ -240,6 +243,7 @@ void emitAST (FILE * fp, ASTnode * p)
 {
     char * L1; //label 1
     char * L2; //label 2
+    char * L3; //label 3
     if (p == NULL ) return;
     /* **Start of large switch structure for emitting code for the different node types** */
     switch (p -> type) {
@@ -364,6 +368,7 @@ void emitAST (FILE * fp, ASTnode * p)
             // create the temporary labels
             L1=CreateTempLbl();
             L2=CreateTempLbl();
+            L3=CreateTempLbl();
 
             fprintf(fp, "\n%s:\t;Label for start of if statement\n", L1);
 
@@ -390,10 +395,13 @@ void emitAST (FILE * fp, ASTnode * p)
             fprintf(fp, "\tJE %s\t\t;IF condition, jump to else part\n", L2);
 
             emitAST(fp, p->s2); //emit statement 1 of the if statement
+            fprintf(fp, "\tJMP %s\t\t;jump over else (if present)\n", L3);
 
             fprintf(fp, "\n%s:\t;Label for start of else part\n", L2);
 
             emitAST(fp, p->s3); //emit statement 2 of the if statement
+            
+            fprintf(fp, "\n%s:\t;Label for after else part\n", L3);
 
             break; // END case SELECTSTMT
             
