@@ -1,14 +1,15 @@
 int x4[100];
 int f ( int z)
   {
-   write "inside f";
+   write "inside f, the param given was:";
    write z;
-   return z;
+   return z * 5;
    }
 
 void main(void) {
    int g;
    g = 100;
-   f(2);
+   write "about to call a function";
+   write f(2);
    write g;
 }
