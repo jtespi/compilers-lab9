@@ -243,7 +243,7 @@ void emit_funct( FILE * fp, ASTnode * p) {
     if(debug)printf("In emit_funct\n");
     
     //emit the args first
-    fprintf(fp, "\n\tEmitting function call...\n");
+    fprintf(fp, "\n\t;Emitting function call...\n");
     if ( p == NULL) return;
     
     // s1 of ARGLIST should point to an expression
@@ -301,7 +301,7 @@ void emit_arg2param( FILE * fp, ASTnode * a, ASTnode * p, int fSize) {
     fprintf(fp, "\tMOV RBX, RSP\t;copy the current SP into RBX\n");
     fprintf(fp, "\tSUB RBX, %d\t;subtract the function size from the SP\n", (fSize+1));
     
-    while ( p != NULL ) {
+    while ( (p != NULL) && (a != NULL) ) {
         
         fprintf(fp, "\tMOV RAX, [RSP + %d]\t;move the argument RSP + offset into RAX\n", (a->symbol->offset)*8);
         fprintf(fp, "\tMOV [RBX + %d], RAX\t;move from rax into the param loc\n", (p->symbol->offset)*8);
@@ -309,8 +309,8 @@ void emit_arg2param( FILE * fp, ASTnode * a, ASTnode * p, int fSize) {
         // iterate to the next node
         // a is ARGLIST
         // p is fparams
-        a->next;
-        p->next;
+        a = a->next;
+        p = p->next;
         
     } // end while
     
@@ -429,7 +429,7 @@ void emitAST (FILE * fp, ASTnode * p)
                             break;
                             
                         case CALL: emit_funct(fp, p->s1); //emit a function call
-                            fprintf(fp, "\tMOV RSI, RAX\t;after function call return, move the resuling value into rax\n");
+                            fprintf(fp, "\tMOV RSI, RAX\t;after function call return, move the resuling value from rax\n");
                             break;
                             
                         default: fprintf(fp, "\t;ERROR: Unknown value in write statement!\n");
@@ -439,7 +439,7 @@ void emitAST (FILE * fp, ASTnode * p)
                     //emitAST( fp, p -> s1);
                 } // end else: s1 is not a string
                 fprintf( fp, "\n");
-                    
+                
                 break;
 
         case RETURNSTMT: if(debug)printf("emitAST: ReturnStmt\n");
