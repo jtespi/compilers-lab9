@@ -255,9 +255,7 @@ compStmt : '{'
           $$->s1 = $3; /* local declarations */
           $$->s2 = $4; /* statement list */
 	    
-            
-           /*  Display the symbol table as specified (regardless of debug) */
-           Display();
+           if(debug)Display();
            if ( offset > maxOffset ) maxOffset = offset;
            offset -= Delete( level );
            level--;
@@ -313,14 +311,14 @@ selectStmt : IF  '(' expr ')' statement %prec IFX
               $$ -> s1 = $3; /* expression */
               $$ -> s2 = $5; /* statement */
               $$ -> s3 = NULL;
-              printf("--found an if statement\n"); 
+              if(debug)printf("--found an if statement\n"); 
               }
             | IF  '(' expr ')' statement ELSE statement 
             { $$ = ASTCreateNode( SELECTSTMT );
               $$ -> s1 = $3; /* expression */
               $$ -> s2 = $5; /* (first) statement */
               $$ -> s3 = $7; /* (second, else) statement */
-              printf("--found an if/else statement\n"); }
+              if(debug)printf("--found an if/else statement\n"); }
             ;
             
 /* an iteration statement is used for a while loop */             
@@ -328,7 +326,7 @@ iterStmt : WHILE '(' expr ')' statement
         { $$ = ASTCreateNode( ITERSTMT );
           $$ -> s1 = $3; /* expression */
           $$ -> s2 = $5; /* statement */
-          printf("--found a while loop\n"); 
+          if(debug)printf("--found a while loop\n"); 
           }
         ;
 
@@ -348,7 +346,7 @@ assnStmt : var '=' exprStmt
 
 	  /* Temporarily store the RHS in case it is modified */
           $$ -> name = CreateTemp();
-	  $$ -> symbol = Insert( $$->name, INTDEC, 0, level, 1, offset, NULL);
+          $$ -> symbol = Insert( $$->name, INTDEC, 0, level, 1, offset, NULL);
           offset++;
           }
         ;
@@ -639,7 +637,7 @@ main(int argc, char * argv[] )
   /* Next call yyparse */
   yyparse();
   
-  printf("  --- Finished parsing input/file ---\n");
+  printf("---- Finished parsing input/file ---\n");
   
   emitASTmaster( fp, program );
   

@@ -73,9 +73,9 @@ void emitASTstrings ( FILE * fp, ASTnode * p ) {
     } // end if
     
     // alternate abstract syntax tree navigation
-    else if ( p->s1 != NULL) emitASTstrings( fp, p->s1 );
-    else if ( p->s2 != NULL) emitASTstrings( fp, p->s2 );
-    else if ( p->s3 != NULL) emitASTstrings( fp, p->s3 );
+    emitASTstrings( fp, p->s1 );
+    emitASTstrings( fp, p->s2 );
+    emitASTstrings( fp, p->s3 );
     
     // move to the next node
     emitASTstrings( fp, p -> next );
@@ -83,6 +83,9 @@ void emitASTstrings ( FILE * fp, ASTnode * p ) {
 
 
 void emit_id ( FILE * fp, ASTnode * p ) {
+    
+    fprintf(fp, "\n\t;Emitting an identifier...\n");
+    
     // *** array functionality
     if ( p->s1 != NULL ) { // if s1 is not null, the ID is an array
         
@@ -119,6 +122,9 @@ void emit_id ( FILE * fp, ASTnode * p ) {
         fprintf(fp, "\tMOV  RAX, %d\t;get identifier offset\n", (p->symbol->offset)*8);
         fprintf(fp, "\tADD  RAX, RSP\t;Add SP to have direct ref to mem\n");
     }
+    
+    // separate each identifier with a newline
+    fprintf(fp, "\n");
     
 }
 
@@ -229,6 +235,8 @@ void emit_expr( FILE * fp, ASTnode * p) {
 /* Emit NASM code following the abstract syntax tree */
 void emitAST (FILE * fp, ASTnode * p)
 {
+    char * L1; //label 1
+    char * L2; //label 2
     if (p == NULL ) return;
     /* **Start of large switch structure for emitting code for the different node types** */
     switch (p -> type) {
@@ -341,6 +349,7 @@ void emitAST (FILE * fp, ASTnode * p)
             break;
             
         case ASSNSTMT: // call emitAST for s2 first
+            fprintf(fp, "\n\t;Assignment statement\n");
             emitAST( fp, p->s2 );
             emit_id( fp, p->s1 );
             fprintf(fp, "\tMOV RBX, [RSP + %d]\t;move from RSP + offset into RBX\n", (p->s2->symbol->offset)*8);
@@ -374,15 +383,15 @@ void emitAST (FILE * fp, ASTnode * p)
                default: fprintf(fp,"\t;Error in SELECTSTMT (if)!\n");
             } // end switch for SELECTSTMT
 
-            fprintf(fp, "\tCMP rax, 0\t;IF comparison\n");
+            fprintf(fp, "\tCMP RAX, 0\t;IF comparison\n");
             fprintf(fp, "\tJE %s\t\t;IF condition, jump to else part\n", L2);
 
-            emitAST(fp, p->s1); //emit statement 1 of the if statement
+            emitAST(fp, p->s2); //emit statement 1 of the if statement
 
-            fprintf(fp, "\tJMP %s\t\t;end of IF statement1 (s1), go back to check condition\n", L1);
+            //fprintf(fp, "\tJMP %s\t\t;end of IF statement1 (s1), go back to check condition\n", L1);
             fprintf(fp, "\n%s:\t;Label for start of else part\n", L2);
 
-            emitAST(fp, p->s2); //emit statement 2 of the if statement
+            emitAST(fp, p->s3); //emit statement 2 of the if statement
 
             break; // END case SELECTSTMT
             
@@ -392,7 +401,7 @@ void emitAST (FILE * fp, ASTnode * p)
             L1 = CreateTempLbl();
             L2 = CreateTempLbl();
             
-            fprintf(fp, "\n%s:\t;Label - start of while statement\t", L1);
+            fprintf(fp, "\n%s:\t;Label - start of while statement\n", L1);
             
             switch ( p->s1->type ) {
                 case NUMBER: fprintf(fp, "\tMOV RAX, %d\t;While stmt load immediate into rax\n", p->s1->value);
@@ -415,11 +424,11 @@ void emitAST (FILE * fp, ASTnode * p)
             fprintf(fp, "\tCMP RAX, 0\t;WHILE comparison\n");
             fprintf(fp, "\tJE %s\t\t;WHILE condition, jump to end\n", L2);
             
-            emitAST(fp, p->s1); //emit the body of the while loop (statement 1)
+            emitAST(fp, p->s2); //emit the body of the while loop (s2)
             
             fprintf(fp, "\tJMP %s\t\t;end of while, go back to check condition\n", L1);
             
-            fprintf(fp, "\n%s:\t;Label - end of while statement\t", L2);
+            fprintf(fp, "\n%s:\t;Label - end of while statement\n", L2);
             
             break; // END case ITERSTMT
             

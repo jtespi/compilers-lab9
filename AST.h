@@ -44,6 +44,12 @@ enum OPERATORS {
    VOIDDEC
 };
 
+char * CreateTemp2();
+char * CreateTempLbl();
+
+int GTEMPS;
+int GTEMPS2;
+
 typedef struct ASTnodetype
 {
      enum ASTtype type;
@@ -64,11 +70,6 @@ void ASTprint(int level, ASTnode *p);
 //-------- Functions & data contained in emitAST.c ---------------------------
 
 FILE * fp; //file pointer object
-char * L1; //label 1
-char * L2; //label 2
-
-char * CreateTemp2();
-char * CreateTempLbl();
 
 void emit_id ( FILE * fp, ASTnode *p );
 void emit_expr( FILE * fp, ASTnode *p);
