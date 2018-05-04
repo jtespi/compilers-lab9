@@ -74,6 +74,9 @@ FILE * fp; //file pointer object
 void emit_id ( FILE * fp, ASTnode *p );
 void emit_expr( FILE * fp, ASTnode *p);
 void emit_funct( FILE * fp, ASTnode *p);
+void emit_args( FILE * fp, ASTnode * p);
+void emit_arg2param( FILE * fp, ASTnode * a, ASTnode * p, int fSize );
+void emit_return( FILE * fp, ASTnode * p);
 
 void emitASTmaster ( FILE * fp, ASTnode *p );
 void emitAST( FILE * fp, ASTnode * p );

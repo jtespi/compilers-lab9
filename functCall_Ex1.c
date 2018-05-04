@@ -9,6 +9,6 @@ int f ( int z)
 void main(void) {
    int g;
    g = 100;
-   f(2);
+   write f(2);
    write g;
 }
