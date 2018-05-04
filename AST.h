@@ -16,8 +16,8 @@ enum ASTtype {
    LOCALDEC,
    STMTLIST,
    EXPRSTMT,
-   SELECTSTMT, /*AKA if-statement, value = 10*/
-   ITERSTMT, /*AKA while-statement, value = 11*/
+   SELECTSTMT, /*AKA if-statement, value = 11*/
+   ITERSTMT, /*AKA while-statement, value = 12*/
    ASSNSTMT,
    RETURNSTMT,
    READSTMT,
@@ -26,7 +26,7 @@ enum ASTtype {
    NUMBER,
    TERM,
    ARGLIST,
-   CALL  /*value = 20*/
+   CALL  /*value = 21*/
 };
 enum OPERATORS {
    PLUS, /*value = 0*/
@@ -73,6 +73,7 @@ FILE * fp; //file pointer object
 
 void emit_id ( FILE * fp, ASTnode *p );
 void emit_expr( FILE * fp, ASTnode *p);
+void emit_funct( FILE * fp, ASTnode *p);
 
 void emitASTmaster ( FILE * fp, ASTnode *p );
 void emitAST( FILE * fp, ASTnode * p );
