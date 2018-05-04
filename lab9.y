@@ -596,11 +596,11 @@ argList : expr {
           
           }
 
-        | argList ',' expr {
+        | expr ',' argList {
           $$ = ASTCreateNode( ARGLIST );
-          $$ -> isType = $3 -> isType;
-          $$ -> next = $1;
-          $$ -> s1 = $3;
+          $$ -> isType = $1 -> isType;
+          $$ -> next = $3;
+          $$ -> s1 = $1;
           
           $$ -> name = CreateTemp();
           $$ -> symbol = Insert( $$->name, INTDEC, 0, level, 1, offset, NULL);

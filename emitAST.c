@@ -107,7 +107,8 @@ void emit_id ( FILE * fp, ASTnode * p ) {
             fprintf(fp, "\tSHL RBX, 3\t;get the true array size, multiply by 8\n");
             break;
             
-        case CALL: //call coming soon
+        case CALL: emit_funct(fp, p->s1);
+            fprintf(fp, "\tCALL %s\t;Call the function \'%s\'\n", p->s1->name, p->s1->name);
             break;
         
         default: fprintf(fp, "\t;Error in array identifier\n");
@@ -138,20 +139,21 @@ void emit_expr( FILE * fp, ASTnode * p) {
     // left hand side
     switch( p->s1->type) {
         case NUMBER:
-            fprintf(fp, "\tMOV RAX, %d\n", p->s1->value);
+            fprintf(fp, "\tMOV RAX, %d\t;load immediate into rax\n", p->s1->value);
             break;
         
         case IDENTIFIER: 
             emit_id(fp, p->s1);
-            fprintf(fp, "\tMOV RAX, [RAX]\n");
+            fprintf(fp, "\tMOV RAX, [RAX]\t;move address of rax into rax\n");
             break;
         
         case EXPR: 
             emit_expr(fp, p->s1); // a recursive call to emit expression
-            fprintf(fp, "\tMOV RAX, [RSP + %d]\n", (p->s1->symbol->offset)*8);
+            fprintf(fp, "\tMOV RAX, [RSP + %d]\t;move value from rsp + offset into rax\n", (p->s1->symbol->offset)*8);
             break;
             
-        case CALL: //coming soon
+        case CALL: emit_funct(fp, p->s1);
+            fprintf(fp, "\tCALL %s\t;Call the function \'%s\'\n", p->s1->name, p->s1->name);
             break;
         default: fprintf(fp, "\t;broken expr LHS!\n");
             break;    
@@ -176,7 +178,8 @@ void emit_expr( FILE * fp, ASTnode * p) {
             fprintf(fp, "\tMOV RBX, [RSP + %d]\t;move value from rsp + offset into rbx\n", (p->s2->symbol->offset)*8);
             break;
 
-        case CALL: //coming soon
+        case CALL: emit_funct(fp, p->s2);
+            fprintf(fp, "\tCALL %s\t;Call the function \'%s\'\n", p->s1->name, p->s1->name);
             break;
 
         default: fprintf(fp, "\t;broken expr RHS!\n");
@@ -199,7 +202,7 @@ void emit_expr( FILE * fp, ASTnode * p) {
           fprintf(fp, "\tIDIV RBX\t;division operation\n");
           break;
        case EQUAL: fprintf(fp, "\tCMP RAX, RBX\t;equals operation\n");
-          fprintf(fp, "\tSETE AL \t;set rax lower to equal??\n");
+          fprintf(fp, "\tSETE AL \t;set rax lower to equal\n");
           fprintf(fp, "\tMOV RBX, 1\t;set rbx to 1 to filter the value in rax\n");
           fprintf(fp, "\tAND RAX, RBX\t;filter rax comparison\n");
           break;
@@ -264,6 +267,8 @@ void emit_args( FILE * fp, ASTnode * p ) {
     if(debug) printf("In emit_args\n");
     
     if ( p == NULL ) return;
+    
+    fprintf(fp, "\t; emit an argument\n");
     
     /*if ( p != NULL ) { */
         switch( p->s1->type) {
@@ -457,10 +462,10 @@ void emitAST (FILE * fp, ASTnode * p)
                 
         // RETURNSTMT s1 holds an expression
         case RETURNSTMT: if(debug)printf("emitAST: ReturnStmt\n");
+             fprintf(fp, "\t;In return statement\n");
             // send emit_return a RETURNSTMT node
               emit_return(fp, p);
               fprintf(fp, "\tRET\n");
-              // more action here???
               break; //end case for return statement
                 
         case EXPRSTMT : if(debug)printf("emitAST: ExprStmt\n");
