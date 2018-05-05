@@ -31,15 +31,16 @@ void emitASTmaster ( FILE * fp, ASTnode *p ) {
     
 }
 
+// emits the global variables
 void emitASTglobals( FILE * fp, ASTnode * p ) {
   
     if ( p == NULL ) return;
     
     switch (p -> type) {
            /* Variable declarations */
-           case VARDEC :  //printf("Variable declaration: ");
+           case VARDEC :
                      if ( p-> operator == INTDEC ) {
-                         //printf("INT");
+                       
                          fprintf(fp, " common\t %s\t", p->name);
                      }
                      else if ( p-> operator == VOIDDEC )
@@ -47,9 +48,8 @@ void emitASTglobals( FILE * fp, ASTnode * p ) {
                          ;
                      else 
                          fprintf(fp, "*unknown type in vardec*");
-                     //printf(" %s",p -> name);
+                  
                      if ( p-> value > 0) {
-                        //printf("[%d]",p -> value);
                          fprintf(fp, "%d", (p->value)*8 );
                      }
                      else {
@@ -64,6 +64,8 @@ void emitASTglobals( FILE * fp, ASTnode * p ) {
 } // end emitASTglobals
 
 
+// emit all strings in the program and store in the data section.
+// all strings are considered global in scope.
 void emitASTstrings ( FILE * fp, ASTnode * p ) {
     if ( p == NULL ) return;
     if ( (p -> type == WRITESTMT) && (p->strlabel != NULL) ) {
@@ -80,9 +82,10 @@ void emitASTstrings ( FILE * fp, ASTnode * p ) {
     
     // move to the next node
     emitASTstrings( fp, p -> next );
-}
+} // end emitASTstrings
 
 
+// emit_id preconsition is that the node passed is an IDENTIFIER
 void emit_id ( FILE * fp, ASTnode * p ) {
     
     fprintf(fp, "\n\t;Emitting an identifier...\n");
@@ -109,6 +112,8 @@ void emit_id ( FILE * fp, ASTnode * p ) {
             
         case CALL: emit_funct(fp, p->s1);
             fprintf(fp, "\tCALL %s\t;Call the function \'%s\'\n", p->s1->name, p->s1->name);
+            fprintf(fp, "\tMOV RBX, RAX\t;after function call return, move the resuling value from rax\n");
+            fprintf(fp, "\tSHL RBX, 3\t;get the true array size, multiply by 8\n");
             break;
         
         default: fprintf(fp, "\t;Error in array identifier\n");
@@ -131,12 +136,15 @@ void emit_id ( FILE * fp, ASTnode * p ) {
     // separate each identifier with a newline
     fprintf(fp, "\n");
     
-}
+} // end emit_id
+// the id's value is now stored in RAX (postcondition)
 
+
+// emit_expr precondition: the node passed is of type EXPR
 void emit_expr( FILE * fp, ASTnode * p) {
     fprintf(fp, "\n\t;Emitting expression...\n");
     
-    // left hand side
+    // emit the left hand side
     switch( p->s1->type) {
         case NUMBER:
             fprintf(fp, "\tMOV RAX, %d\t;load immediate into rax\n", p->s1->value);
@@ -162,7 +170,7 @@ void emit_expr( FILE * fp, ASTnode * p) {
     // move LHS value from rax to rsp with offset
     fprintf(fp, "\tMOV [RSP + %d], RAX\n", (p->symbol->offset)*8);
 
-    // right hand side
+    // emit the right hand side
     switch( p->s2->type ) {
         case NUMBER:
             fprintf(fp, "\tMOV RBX, %d\t;store immediate into rbx\n", p->s2->value);
@@ -258,7 +266,7 @@ void emit_funct( FILE * fp, ASTnode * p) {
     // emit code for copying arguments to parameters
     emit_arg2param(fp, p->s1, p->symbol->fparams, p->symbol->mySize);
     
-    // emit_arg2param will  to the next ARGLIST
+    // emit_arg2param will move to the next ARGLIST
 } // ** end function emit_function
 
 // emit_args precondition: node passed is an ARGLIST
@@ -268,9 +276,8 @@ void emit_args( FILE * fp, ASTnode * p ) {
     
     if ( p == NULL ) return;
     
-    fprintf(fp, "\t; emit an argument\n");
+    fprintf(fp, "\t; emitting an argument\n");
     
-    /*if ( p != NULL ) { */
         switch( p->s1->type) {
             case NUMBER: fprintf(fp, "\tMOV RAX, %d\t;load immediate into rax\n", p->s1->value);
             break;
@@ -283,7 +290,6 @@ void emit_args( FILE * fp, ASTnode * p ) {
             fprintf(fp, "\tMOV RAX, [RSP + %d]\t;store value from rsp+offset into rax\n", (p->s1->symbol->offset)*8);
             break;
             
-            // the return is a recursive call to another function
             case CALL: emit_funct(fp, p->s1);
             fprintf(fp, "\tCALL %s\t;Call the function \'%s\'\n", p->s1->name, p->s1->name);                    
             break;
@@ -311,7 +317,7 @@ void emit_arg2param( FILE * fp, ASTnode * a, ASTnode * p, int fSize) {
         fprintf(fp, "\tMOV RAX, [RSP + %d]\t;move the argument RSP + offset into RAX\n", (a->symbol->offset)*8);
         fprintf(fp, "\tMOV [RBX + %d], RAX\t;move from rax into the param loc\n", (p->symbol->offset)*8);
         
-        // iterate to the next node
+        // move to the next node
         // a is ARGLIST
         // p is fparams
         a = a->next;
@@ -319,7 +325,7 @@ void emit_arg2param( FILE * fp, ASTnode * a, ASTnode * p, int fSize) {
         
     } // end while
     
-}
+} // end emit_arg2param
 
 // emit_return precondition is that the node passed in is a RETURNSTMT
 void emit_return( FILE * fp, ASTnode * p ) {
@@ -361,6 +367,7 @@ void emit_return( FILE * fp, ASTnode * p ) {
 } // ** end function emit_return
 
 /* Emit NASM code following the abstract syntax tree */
+/*  This is the main emitter code */
 void emitAST (FILE * fp, ASTnode * p)
 {
     char * L1; //label 1
@@ -386,17 +393,7 @@ void emitAST (FILE * fp, ASTnode * p)
                
                fprintf(fp,"\tMOV RSP, R8\t;set the new stack pointer\n\n");
     
-               emitAST(fp,p->s2); // s2 is compound stmt
-               
-               //function teardown
-               /*fprintf(fp,"\tMOV RBP, [RSP]\t;restore the old BP from memory\n");
-               fprintf(fp,"\tMOV RSP, [RSP+8]\t;restore the old SP\n");
-               */
-               // emit the return
-               // s1 points to parameters if they are any
-               // for main(void) s1 should be NULL
-               /////emit_return(fp, p->s1);
-               
+               emitAST(fp,p->s2); // s2 is compound stmt               
                
                //function teardown
               fprintf(fp, "\n\t;Function teardown...\n");
@@ -409,7 +406,7 @@ void emitAST (FILE * fp, ASTnode * p)
                
                break;
                
-        case COMPSTMT:
+        case COMPSTMT: //call emitAST for s1 and s2
                emitAST(fp,p->s1);
                emitAST(fp,p->s2);
                break;
@@ -446,14 +443,14 @@ void emitAST (FILE * fp, ASTnode * p)
                         case CALL: emit_funct(fp, p->s1); //emit a function call
                             fprintf(fp, "\t;About to call the function, each param should be already set up in the new activation record\n");
                             fprintf(fp, "\tCALL %s\t\t;Call to function %s\n", p->s1->name, p->s1->name);
-                            fprintf(fp, "\tMOV RSI, RAX\t;after function call return, move the resuling value from rax\n");
+                            fprintf(fp, "\tMOV RSI, RAX\t;after function call return, move the resuling value from rax into rsi to be printed\n");
                             break;
                             
                         default: fprintf(fp, "\t;ERROR: Unknown value in write statement!\n");
                     } // end switch
                     fprintf(fp, "\tPRINT_DEC 8 , rsi\t;standard write a value\n");
                     fprintf(fp, "\tNEWLINE\n");
-                    //emitAST( fp, p -> s1);
+                 
                 } // end else: s1 is not a string
                 fprintf( fp, "\n");
                 
@@ -481,8 +478,10 @@ void emitAST (FILE * fp, ASTnode * p)
                         fprintf(fp, "\tMOV RAX, [RSP + %d]\t;get value from rsp + offset and store in rax\n", (p->s1->symbol->offset)*8);
                         break;
 
-                     case CALL: emitAST(fp, p->s1); // p->s1 will be a CALL node
-
+                     case CALL: emit_funct(fp, p->s1); // a call node is sent to emit_funct
+                       fprintf(fp, "\t;About to call the function, each param should be set up in the new activation record\n");
+            
+                       fprintf(fp, "\tCALL %s\t\t;Call to function %s\n", p->name, p->name);
                        break;
 
                     default: fprintf(fp, "\t;invalid expression statement\n");
@@ -500,8 +499,6 @@ void emitAST (FILE * fp, ASTnode * p)
             break;        
         case NUMBER: // no action
             break;   
-       // case CALL: // no action
-        //    break;
         case ARGLIST : // no action
             break;
             
@@ -531,7 +528,10 @@ void emitAST (FILE * fp, ASTnode * p)
                 fprintf(fp, "\tMOV RAX, [RAX]\t;IF copy value into rax after emit_id\n");
                 break;
 
-               case CALL: fprintf(fp, "\t;IF call, coming soon...\n");
+               case CALL: emit_funct(fp, p->s1); // a call node is sent to emit_funct
+                 fprintf(fp, "\t;About to call the function, each param should be set up in the new activation record\n");
+            
+                 fprintf(fp, "\tCALL %s\t\t;Call to function %s\n", p->name, p->name);
                 break;   
 
               // most common case, expression
@@ -573,7 +573,9 @@ void emitAST (FILE * fp, ASTnode * p)
                   fprintf(fp, "\tMOV RAX, [RAX]\t;While stmt copy value into rax after emit_id\n");
                   break;
                   
-                case CALL: fprintf(fp, "\t;While stmt call, coming soon...\n");
+                case CALL: emit_funct(fp, p->s1); // a call node is sent to emit_funct
+                  fprintf(fp, "\t;About to call the function, each param should be set up in the new activation record\n");
+                  fprintf(fp, "\tCALL %s\t\t;Call to function %s\n", p->name, p->name);
                   break;
                   
                 case EXPR: emit_expr(fp, p->s1);
@@ -598,16 +600,7 @@ void emitAST (FILE * fp, ASTnode * p)
         /* Function call case */
         case CALL : if(debug) printf("emitAST: CALL\n");
             emit_funct(fp, p); // a call node is sent to emit_funct
-            
-            /*
-            fprintf(fp, "\tMOV [RSP + %d ], RAX\t;store arg value(s) on runtime stack\n", (p->symbol->offset)*8);
-            fprintf(fp, "\tMOV RBX, RSP\t;copy the SP for call moves\n");
-            fprintf(fp, "\tSUB RBX, %d\t;RBX is the new target for the function call\n", (((p->symbol->offset)*8)+8));
-            fprintf(fp, "\tMOV RAX, [RSP + %d]\t;Copy the actual SP into RAX\n", (p->symbol->offset)*8);
-            fprintf(fp, "\tMOV [RBX + %d], RAX\t;Copy rax to rbx target\n", (((p->symbol->offset)*8)-8) );
-            
-            */
-            
+  
             fprintf(fp, "\t;About to call the function, each param should be set up in the new activation record\n");
             
             fprintf(fp, "\tCALL %s\t\t;Call to function %s\n", p->name, p->name);
